@@ -1,0 +1,6 @@
+[package]
+name = "slices_zero_cost_abstractions"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
