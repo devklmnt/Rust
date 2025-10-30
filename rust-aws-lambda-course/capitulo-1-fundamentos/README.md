@@ -365,3 +365,124 @@ fn main() {
     println!("¿Exitoso?: {},  Mensaje: {}", exitoso, mensaje);
 }
 ```
+
+### Expressions vs Statements
+
+```rust
+fn main() {
+    // Statement (no retorna valor)
+    let x= 5;
+
+    // Expression (retorna valor)
+    let y = {
+        let multiplicador = 3;
+        x * multiplicador //Sin punto y coma, es una expression
+    };
+
+    println!("y = {}", y);
+
+    // función que usa expressions
+    let status_code = obtener_status_response(true);
+    println!("Status: {}", status_code);
+}
+
+fn obtener_status_response(es_exitoso: bool) -> u16 {
+    // if es una expression
+    if es_exitoso {
+        200
+    } else {
+        500
+    }
+    // sin return explícito 
+}
+```
+
+---
+
+## 7. Ejercicio Práctico: Simulador de Lambda Handler 
+
+Vamons a crear un simulador básico de lo que sería un handler de Lambda:
+
+```rust
+// struct simple para representar un evento de Lambda
+struct LambdaEvent {
+    request_id: String, 
+    source: String,
+    detail: String,
+}
+
+// Struct para la respuesta 
+struct LambdaResponse {
+    status_code: u16,
+    body: String, 
+    headers: Vec<(String, String)>
+}
+
+impl LambdaResponse {
+    fn new(status_code: u16, body: String) -> Self {
+        LambdaResponse {
+            status_code,
+            body,
+            headers: vec![
+                (String::from("Content-Type"), String::from("application/json")),
+                (String::from("Access-Control-Allow-Origin"), String::from("*")),
+            ],
+        }
+    }
+
+    fn add_header(&mut self, key: String, value: String) {
+        self.headers.push((key,value));
+    }
+}
+
+// Nuestro Handler simulado
+fn lambda_handler(event: LambdaEvent) -> LambdaResponse {
+    println!("Procesando Evento: {}", event.request_id);
+
+    // simulamos lógica de negocio
+    let response_body = if event.source == "api-gateway" {
+        format!(r#"{{"message": "Procesado correctamente", "detail": "{}"}}"#, event.detail)
+    } else {
+        format!(r#"{{"error": "Fuente no soportada: {}"}}"#, event.source)
+    };
+
+    let status = if event.source == "api-gateway" {200} else {400};
+
+    let mut response = LambdaResponse::new(status, response_body);
+    response.add_header(String::from("X-Request-ID"), event.request_id);
+
+    response
+}
+
+fn main() {
+    println!("Simulador de AWS Lambda Handler");
+    println!("===============================");
+
+    // simular eventos 
+    let eventos = vec![
+        LambdaEvent {
+            request_id: String::from("req-001"),
+            source: String::from("api-gateway"),
+            detail: String::from("GET /users/123"),
+        },
+        LambdaEvent {
+            request_id: String::from("req-002"),
+            source: String::from("sqs"),
+            detail: String::from("process-queue-message"),
+        }
+    ];
+
+    for evento in eventos {
+        let response = lambda_handler(evento);
+
+        println!("\nResponse:");
+        println!("Status: {}", response.status_code);
+        println!("Body: {}", response.body);
+        println!("Headers:");
+        for (key, value) in response.headers {
+            println!("  {}: {}", key, value);
+        }
+        println!("----");
+    }
+}
+```
